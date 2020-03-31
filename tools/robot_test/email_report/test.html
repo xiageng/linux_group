@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+</head>
+<style type="text/css">
+#robot-summary-table {
+    text-align: center;
+    border-collapse: collapse;
+  }
+#robot-summary-table th {
+      font-weight: normal;
+      padding: 3px;
+      background-color:#ddd;
+      border: 1px solid black;
+  }
+#robot-summary-table td {
+      font-weight: bold;
+      margin: 0px;
+      padding: 3px;
+      border: 1px solid black;
+  }
+
+#robot-summary-table fail {
+      color: #f00;
+  }
+#robot-summary-table pass {
+      color: #0f0;
+  }
+</style>
+<body leftmargin="8" marginwidth="0" topmargin="8" marginheight="4"  offset="0">
+<h4><b>******************** Automation Results ******************</b></h4>
+<p>
+<b><h4>Test Statistics</h4></b>
+
+<table id="robot-summary-table">
+<tr>
+<th><b>Type</b></th>
+<th><b>Total</b></th>
+<th><b>Run</b></th>
+<th><b>No Run</b></th>
+<th><b>Pass</b></th>
+<th><b>Fail</b></th>
+<th><b>ENB</b></th>
+</tr>
+<tr>
+<td>CIT_trunk</td>
+<td>2</td>
+<td>2</td>
+<td>0</td>
+<td><span style="color:green">2</span></td>
+<td><span style="color:red">0</span></td>
+<td>SBTS20A_ENB_9999_191211_004164</td>
+</tr>
+</p>
+</table>
+<p></p><p></p><div>
+<table>
+<tr><td><b>Test Execution Results</b></td></tr>
+</table>
+<table id="robot-summary-table">
+<tr style="background-color:#ddd">
+<th>Test Name</th>
+<th>Status</th>
+<th>Tag</th>
+</tr>
+<tr>
+<td>LTE4655 A a2 left Calibration</td>
+<td style="color: PASS ? "#66CC00" : "#FF3333"">PASS</td>
+<td>CIT_trunk</td>
+</tr>
+<tr>
+<td>LTE2666 Case3 TM3 UE attach</td>
+<td style="color: PASS ? "#66CC00" : "#FF3333"">PASS</td>
+<td>CIT_trunk</td>
+</tr>
+</table>
+</div>
+</body>
+</html>
