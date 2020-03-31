@@ -2,17 +2,89 @@
 from __future__ import print_function
 import argparse
 import sys, re
-import requests,urllib
-import os,socket
+import requests
+import os, shutil
 import datetime
 import zipfile
 
-socket.setdefaulttimeout(600)
-def report_hook(bk_num, bk_size, total_size):
-    per = 100 * bk_num * bk_size / total_size
-    if per%2:
-        print("\r" + "Download progress:%d%%" % per, end="")
-        #print("\r" + "Download progress:%s%d%%" % (">" * int(50*bk_num * bk_size / total_size), per), end="")
+def get_release_version(release_url):
+    try:
+        print(release_url)
+        try:
+            release_request = requests.get(release_url, timeout = (7, None))
+        except requests.Timeout as timeout_err:
+            print(timeout_err)
+        except requests.HTTPError as err:
+            print(err)
+        if release_request.status_code == 200:
+            release = release_request.content
+            return release
+        else:
+            print("get coop release fail")
+    except requests.exceptions.RequestException as error:
+        print(error)
+
+def download_package(target_bd):
+    if not os.path.isdir('./BTSSW'):
+        os.mkdir('BTSSW')
+    sw_path = './BTSSW/'
+    file_name = sw_path + target_bd + '_release_BTSSM_downloadable_A53.zip'
+    pstools_name = './pstool_auto/'+ target_bd+ "_pstools.zip"
+    url_wft = 'https://wft.int.net.nokia.com/ext/build_content/{}'.format(target_bd)
+    print("Downloading %s" % file_name)
+    try:
+        r = requests.get(url_wft, stream=True)
+        sw_name = r'<file title="' + target_bd + '_release_BTSSM_downloadable_A53.zip" url="(.*?)">'
+        url_download_sw = re.findall(sw_name, r.content)[0]
+        pstool_filter = r'<file title=".*_pstools.zip" url="(.*?)">'
+        url_pstool_download = re.findall(pstool_filter,r.content)[0]
+        print(url_download_sw)
+        save_sw_with_progress(url_download_sw, file_name)
+        print("Start download pstools")
+        save_sw_with_progress(url_pstool_download, pstools_name)
+    except requests.exceptions.RequestException as e:
+        print('QT_status: Download_SW Fail')
+        print(e)
+
+def save_sw_with_progress(url_download_sw, file_name):
+    try:
+        r = requests.get(url_download_sw, stream=True)
+        if r.status_code == 200:
+            total_length = r.headers.get('content-length')
+            with open(file_name, "wb") as f:
+                if total_length is None:
+                    f.write(r.content)
+                else:
+                    dl = 0
+                    last_done = 0
+                    total_length = int(total_length)
+                    for data in r.iter_content(chunk_size=4096):
+                        dl += len(data)
+                        f.write(data)
+                        done = round(dl/float(total_length), 2)*100
+                        if done-last_done > 2:
+                            print('Dowdloading progress {}%'.format(done))
+                            last_done = done
+            print('QT_status: Download_SW Pass')
+        else:
+            print('QT_status: Download_SW Fail')
+            print(r.status_code)
+    except requests.exceptions.RequestException as e:
+        print('QT_status: Download_SW Fail')
+        print(e)
+                    # sys.stdout.write("\r[%s%s]" % ('=' * done, ' ' * (50 - done)))
+                    # sys.stdout.flush()
+def pstool_clear():
+    if not os.path.isdir('/opt/TtiTracer/pstools'):
+        os.mkdir('pstools')
+    if os.path.isfile('./pstool_auto/pstools.zip'):
+        os.remove('./pstool_auto/pstools.zip')
+    if os.path.isdir('pstool_auto/pstools/'):
+        shutil.rmtree('./pstool_auto/pstools')
+
+def unzip_pstools(target_pn):
+    cmd = 'unzip -d pstool/ pstool_auto/'+ target_pn +'_pstools.zip'
+    os.system(cmd)
 
 class SWPackage(object):
     def __init__(self,pk_name,pk_branch,pk_date):
@@ -31,10 +103,8 @@ class SWPackage(object):
     def download_package_name(self):
         url_wft = 'https://wft.int.net.nokia.com/ext/build_content/{}'.format(self.pk_name)
         url_sw,url_pstool = self.__parse_download_url(url_wft)
-        print("Start download bts sw package:")
-        self.download_file(url_sw,self.pk_file)
-        print("Start download pstools.zip file:")
-        self.download_file(url_pstool, self.pstools_file)
+        self.download_files(url_sw,self.pk_file)
+        self.download_files(url_pstool, self.pstools_file)
 
     def download_files(self,file_url,file_name):
         try:
@@ -56,9 +126,6 @@ class SWPackage(object):
         except requests.exceptions.RequestException as e:
             print("download_status: get package and pstools files Fail")
             print("error:%s", e)
-
-    def download_file(self,file_url,file_name):
-        urllib.urlretrieve(file_url,file_name,reporthook=report_hook)
 
     def __parse_download_url(self,url_wft):
         try:
@@ -108,13 +175,11 @@ class SWPackage(object):
             f = zipfile.ZipFile(self.pstools_file)
             extract_dir = os.path.dirname(self.pstools_file) + "/pstools"
             f.extractall(path=extract_dir)
-            f.extractall(path="/opt/TtiTracer/pstools")
         else:
             print("thers is no pstools.zip file, please download pstools")
 
 def parse_cmd():
     parser = argparse.ArgumentParser(description="download sw package based on QC promotion or package name and pstools")
-    #parser.add_argument('-pstools', dest='pstools', help='please input pstools version',default='')
     group=parser.add_mutually_exclusive_group()
     group.add_argument('-pn', dest='pk_name', help='please input package name',default='')
     group.add_argument('-pd', dest='pk_date_branch', nargs=2,
